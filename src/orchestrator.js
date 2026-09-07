@@ -4,26 +4,22 @@ const inventory = process.env.INVENTORY_URL || "http://127.0.0.1:8082";
 const payment = process.env.PAYMENT_URL || "http://127.0.0.1:8083";
 const notifier = process.env.NOTIFIER_URL || "http://127.0.0.1:8084";
 
-serve("orchestrator", process.env.PORT || 8081, async (path, order, trace) => {
-  if (path !== "/orders") throw new Error("route not found");
+serve("checkout-coordinator", process.env.PORT || 8081, async (path, order, trace) => {
+  if (path !== "/coordinate") throw new Error("route not found");
   order.orderId = crypto.randomUUID();
-  const [stock, money] = await Promise.allSettled([
-    call(inventory, "/reserve", order, trace),
-    call(payment, "/authorize", order, trace)
-  ]);
-  if (stock.status === "rejected" || money.status === "rejected") {
-    await Promise.allSettled([
-      stock.status === "fulfilled" && call(inventory, "/release", order, trace),
-      money.status === "fulfilled" && call(payment, "/void", order, trace)
-    ]);
-    throw new Error(stock.reason?.message || money.reason?.message);
+  await call(payment, "/authorize", order, trace);
+  try {
+    await call(inventory, "/reserve", order, trace);
+  } catch (error) {
+    await call(payment, "/void", order, trace);
+    throw error;
   }
+  const status = "confirmed";
   await Promise.all([
     call(inventory, "/commit", order, trace),
     call(payment, "/capture", order, trace)
   ]);
-  void call(notifier, "/notify", { ...order, status: "confirmed" }, trace)
+  void call(notifier, "/notify", { ...order, status }, trace)
     .catch((error) => console.error(`notification failed: ${error.message}`));
-  return { orderId: order.orderId, status: "confirmed", trace };
+  return { orderId: order.orderId, status, component: "checkout-coordinator", trace };
 });
-
