@@ -1,0 +1,13 @@
+{
+  "name": "distributed-checkout-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/local.js",
+    "test": "node test/smoke.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+
