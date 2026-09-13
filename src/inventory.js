@@ -8,6 +8,12 @@ serve("inventory", process.env.PORT || 8082, (path, body) => {
     if (!Number.isSafeInteger(body.quantity) || body.quantity <= 0) {
       throw new Error("quantity must be a positive integer");
     }
+    if (held.has(body.orderId)) {
+      if (held.get(body.orderId) !== body.quantity) {
+        throw new Error("order already has a different reservation");
+      }
+      return { ok: true, stock };
+    }
     if (body.quantity > stock) throw new Error("out of stock");
     stock -= body.quantity;
     held.set(body.orderId, body.quantity);
