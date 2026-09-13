@@ -5,6 +5,9 @@ const held = new Map();
 
 serve("inventory", process.env.PORT || 8082, (path, body) => {
   if (path === "/reserve") {
+    if (!Number.isSafeInteger(body.quantity) || body.quantity <= 0) {
+      throw new Error("quantity must be a positive integer");
+    }
     if (body.quantity > stock) throw new Error("out of stock");
     stock -= body.quantity;
     held.set(body.orderId, body.quantity);
@@ -16,4 +19,3 @@ serve("inventory", process.env.PORT || 8082, (path, body) => {
   } else throw new Error("route not found");
   return { ok: true, stock };
 });
-
