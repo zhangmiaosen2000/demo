@@ -15,6 +15,11 @@ const checkout = (order) =>
 
 try {
   await new Promise((resolve) => setTimeout(resolve, 700));
+  const unsupportedMethod = await fetch("http://127.0.0.1:8080/checkout");
+  assert.equal(unsupportedMethod.status, 405);
+  assert.equal(unsupportedMethod.headers.get("allow"), "POST");
+  assert.match((await unsupportedMethod.json()).error, /method GET not allowed/);
+
   const reservation = { orderId: "retry-test", quantity: 2 };
   const firstReserve = await post(8082, "/reserve", reservation);
   assert.equal(firstReserve.body.stock, 3);
